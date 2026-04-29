@@ -432,10 +432,18 @@ function applyPalette(p, extraBrands = []) {
   };
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
 
-  // Keep URL in sync (try/catch for sandboxed previews)
+  // Keep URL in sync — write back the full color list so extras aren't lost
+  // (try/catch for sandboxed previews that disallow the history API)
   try {
     const url = new URL(window.location);
-    url.searchParams.set('color', p.brand.replace('#', ''));
+    const allHex = [p.brand, ...extraBrands].map(h => h.replace('#', ''));
+    if (allHex.length > 1) {
+      url.searchParams.delete('color');
+      url.searchParams.set('colors', allHex.join(','));
+    } else {
+      url.searchParams.delete('colors');
+      url.searchParams.set('color', allHex[0]);
+    }
     window.history.replaceState({}, '', url);
   } catch(e) {}
 
@@ -629,18 +637,14 @@ const urlParams = new URLSearchParams(window.location.search);
 
 /* Parse color values — supports:
    ?colors=7034CA,FF6B35,00A8E8  (primary + extras, comma-separated)
+   ?color=7034CA,FF6B35,00A8E8   (same, color param also accepts commas)
    ?color=7034CA                 (legacy single-color param, still works) */
 const isValidHex = str => /^[0-9a-fA-F]{6}$/.test(str.replace('#', ''));
 const normalizeHex = str => '#' + str.replace('#', '').toUpperCase();
 
-const rawColors = urlParams.get('colors')
-  ? urlParams.get('colors').split(',').map(s => s.trim()).filter(isValidHex)
-  : [];
-
-const fallback = urlParams.get('color');
-const allColors = rawColors.length
-  ? rawColors
-  : (fallback && isValidHex(fallback) ? [fallback] : ['7034CA']);
+const rawParam = urlParams.get('colors') || urlParams.get('color') || '';
+const allColors = rawParam.split(',').map(s => s.trim()).filter(isValidHex);
+if (!allColors.length) allColors.push('7034CA');
 
 const initHex     = normalizeHex(allColors[0]);
 const extraBrands = allColors.slice(1).map(normalizeHex);
