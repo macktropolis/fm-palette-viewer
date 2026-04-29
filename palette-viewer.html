@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Palette Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--color-bg, #F5F2FD);
+    color: var(--color-text, #16102A);
+    min-height: 100vh;
+    padding: 24px 20px;
+    transition: background 0.4s ease, color 0.4s ease;
+  }
+
+  /* ── SECTIONS ─────────────────────────────────────────────── */
+  .section { max-width: 900px; margin: 0 auto 40px; }
+  .section-label {
+    font-size: 0.62rem; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--color-text-muted);
+    margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+    transition: color 0.4s, border-color 0.4s;
+  }
+
+  /* ── COLOR LIST ───────────────────────────────────────────── */
+  .color-list {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+  }
+
+  .color-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 1.6fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.4s;
+  }
+  .color-row:last-child { border-bottom: none; }
+  .color-row:hover { background: var(--color-surface-2); }
+  .color-row:hover .cr-swatch { transform: scale(1.12); }
+
+  .color-group-header {
+    padding: 7px 16px 6px;
+    background: var(--color-surface-2);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    transition: background 0.4s, border-color 0.4s, color 0.4s;
+  }
+
+  .cr-swatch {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    transition: transform 0.15s, background 0.4s;
+  }
+
+  .cr-name {
+    font-size: 0.68rem; font-weight: 500;
+    color: var(--color-text);
+    font-family: 'DM Mono', monospace;
+    transition: color 0.4s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cr-use {
+    font-size: 0.67rem;
+    color: var(--color-text-2);
+    line-height: 1.45;
+    transition: color 0.4s;
+  }
+
+  .cr-info {
+    font-size: 0.63rem;
+    color: var(--color-text-muted);
+    font-family: 'DM Mono', monospace;
+    text-align: right;
+    white-space: nowrap;
+    transition: color 0.4s;
+  }
+
+  /* ── SHADOWS ──────────────────────────────────────────────── */
+  .shadow-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .shadow-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: 24px; text-align: center; transition: background 0.4s, border-color 0.4s; }
+  .shadow-card.sm { box-shadow: var(--shadow-sm); }
+  .shadow-card.md { box-shadow: var(--shadow-md); }
+  .shadow-card.lg { box-shadow: var(--shadow-lg); }
+  .shadow-label { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px; transition: color 0.4s; }
+  .shadow-value { font-size: 0.6rem; color: var(--color-text-muted); opacity: 0.7; word-break: break-all; line-height: 1.5; transition: color 0.4s; }
+
+  /* ── SEMANTIC ─────────────────────────────────────────────── */
+  .semantic-explanation {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.4s, border-color 0.4s;
+  }
+  .explanation-text { font-size: 0.74rem; line-height: 1.7; color: var(--color-text-2); transition: color 0.4s; }
+  .explanation-text strong { color: var(--color-text); }
+  .hue-shift-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .hue-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--color-surface-2); border-radius: 20px;
+    padding: 4px 10px 4px 6px; font-size: 0.62rem;
+    color: var(--color-text-2); transition: background 0.4s, color 0.4s;
+  }
+  .hue-chip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Semantic group headers get a tinted background */
+  .color-group-header.danger  { color: var(--color-danger-text);  background: var(--color-danger-subtle);  }
+  .color-group-header.warning { color: var(--color-warning-text); background: var(--color-warning-subtle); }
+  .color-group-header.success { color: var(--color-success-text); background: var(--color-success-subtle); }
+
+  .semantic-demo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .alert-card { border-radius: 8px; padding: 14px 16px; border-left: 3px solid transparent; transition: background 0.4s, border-color 0.4s; }
+  .alert-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .alert-icon { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; flex-shrink: 0; }
+  .alert-title { font-size: 0.72rem; font-weight: 500; }
+  .alert-body  { font-size: 0.68rem; line-height: 1.5; }
+
+  /* ── COMPARE ──────────────────────────────────────────────── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare-card { border-radius: 8px; padding: 20px; border: 1px solid #e5e5e5; }
+  .compare-dead { background: #ffffff; border-color: #e5e5e5; }
+  .compare-alive { background: var(--color-surface); border-color: var(--color-border); box-shadow: var(--shadow-sm); transition: background 0.4s, border-color 0.4s, box-shadow 0.4s; }
+  .compare-label { font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
+  .dead-label { color: #999; }
+  .alive-label { color: var(--color-brand); transition: color 0.4s; }
+  .compare-accent { display: inline-block; width: 28px; height: 6px; border-radius: 3px; background: var(--color-brand); margin-bottom: 8px; transition: background 0.4s; }
+  .compare-text-dead { color: #333; font-size: 0.82rem; line-height: 1.6; }
+  .compare-text-alive { color: var(--color-text-2); font-size: 0.82rem; line-height: 1.6; transition: color 0.4s; }
+
+  /* ── LIVE DEMO ────────────────────────────────────────────── */
+  .live-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .demo-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 24px; box-shadow: var(--shadow-md); transition: background 0.4s, border-color 0.4s, box-shadow 0.4s; }
+  .card-eyebrow { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px; transition: color 0.4s; }
+  .card-title-demo { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.1rem; color: var(--color-text); line-height: 1.3; margin-bottom: 8px; transition: color 0.4s; }
+  .card-body-demo { font-size: 0.82rem; line-height: 1.65; color: var(--color-text-2); margin-bottom: 16px; transition: color 0.4s; }
+  .card-badge { display: inline-block; background: var(--color-brand-subtle); color: var(--color-brand); font-size: 0.65rem; font-weight: 500; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 4px; transition: background 0.4s, color 0.4s; }
+  .btn-demo { display: inline-flex; align-items: center; gap: 6px; background: var(--color-brand); color: #fff; font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.06em; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; margin-top: 4px; transition: opacity 0.15s, background 0.4s; }
+  .btn-demo:hover { opacity: 0.88; }
+  .btn-ghost { background: transparent; color: var(--color-brand); border: 1px solid var(--color-border-strong); transition: background 0.15s, color 0.4s, border-color 0.4s; }
+  .btn-ghost:hover { background: var(--color-brand-subtle); }
+  .input-demo { width: 100%; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; padding: 8px 12px; font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--color-text); outline: none; margin-bottom: 10px; transition: border-color 0.15s, box-shadow 0.15s, background 0.4s, color 0.4s; }
+  .input-demo:focus { border-color: var(--color-brand); box-shadow: 0 0 0 3px var(--color-brand-alpha, rgba(112,52,202,0.14)); }
+  .input-label { font-size: 0.65rem; font-weight: 500; color: var(--color-text-2); display: block; margin-bottom: 5px; transition: color 0.4s; }
+
+  /* ── TOAST ────────────────────────────────────────────────── */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--color-text); color: #e8deff; font-size: 0.72rem; padding: 10px 18px; border-radius: 6px; box-shadow: var(--shadow-lg); transform: translateY(60px); opacity: 0; transition: all 0.2s ease; pointer-events: none; z-index: 100; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  @media (max-width: 600px) {
+    .shadow-row, .live-demo, .compare-grid, .semantic-demo-grid { grid-template-columns: 1fr; }
+    body { padding: 16px 12px; }
+    .color-row { grid-template-columns: 28px 1fr auto; }
+    .cr-use { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 01 — Brand Accent -->
+<div class="section">
+  <p class="section-label">01 — Brand Accent</p>
+  <div class="color-list" id="brand-list"></div>
+</div>
+
+<!-- 02 — Backgrounds & Surfaces -->
+<div class="section">
+  <p class="section-label">02 — Backgrounds &amp; Surfaces</p>
+  <div class="color-list" id="surface-list"></div>
+</div>
+
+<!-- 03 — Borders -->
+<div class="section">
+  <p class="section-label">03 — Borders</p>
+  <div class="color-list" id="border-list"></div>
+</div>
+
+<!-- 04 — Text Hierarchy -->
+<div class="section">
+  <p class="section-label">04 — Text Hierarchy</p>
+  <div class="color-list" id="text-list"></div>
+</div>
+
+<!-- 05 — Brand-Tinted Shadows -->
+<div class="section">
+  <p class="section-label">05 — Brand-Tinted Shadows</p>
+  <div class="shadow-row">
+    <div class="shadow-card sm">
+      <p class="shadow-label">--shadow-sm</p>
+      <p class="shadow-value" id="shadow-sm-val"></p>
+    </div>
+    <div class="shadow-card md">
+      <p class="shadow-label">--shadow-md</p>
+      <p class="shadow-value" id="shadow-md-val"></p>
+    </div>
+    <div class="shadow-card lg">
+      <p class="shadow-label">--shadow-lg</p>
+      <p class="shadow-value" id="shadow-lg-val"></p>
+    </div>
+  </div>
+</div>
+
+<!-- 06 — Semantic Colors -->
+<div class="section">
+  <p class="section-label">06 — Semantic Colors: Danger, Warning, Success</p>
+
+  <div class="semantic-explanation">
+    <p class="explanation-text">
+      Pure <strong>#FF0000</strong>, <strong>#FFCC00</strong>, and <strong>#00CC44</strong> fight with branded surfaces because their hue sits at 0°, 50°, and 140° regardless of your palette's temperature. The fix: nudge each semantic hue <strong>±15–25° toward your brand's hue</strong>, then match their lightness and saturation profile to the rest of your token system. They stay immediately readable as danger/warning/success while feeling like they belong.
+    </p>
+    <div class="hue-shift-row" id="hue-shift-explanation"></div>
+  </div>
+
+  <div class="color-list" id="semantic-list"></div>
+
+  <p class="section-label" style="margin-top:20px;">Semantic — Live Alert Preview</p>
+  <div class="semantic-demo-grid" id="semantic-demo"></div>
+</div>
+
+<!-- 07 — Pure Neutral vs Tinted Neutral -->
+<div class="section">
+  <p class="section-label">07 — Pure Neutral vs Tinted Neutral</p>
+  <div class="compare-grid">
+    <div class="compare-card compare-dead">
+      <p class="compare-label dead-label">✗ Pure Neutral — disconnected</p>
+      <div id="dead-accent" style="display:inline-block;width:28px;height:6px;border-radius:3px;margin-bottom:8px;"></div>
+      <p class="compare-text-dead">The brand color floats on top of grey. It reads as a guest in its own house. No relationship to the surface beneath it.</p>
+      <span style="display:inline-block;background:#f0f0f0;color:#555;font-size:0.65rem;padding:3px 10px;border-radius:4px;margin-top:12px;font-family:monospace;">bg: #ffffff · text: #333333</span>
+    </div>
+    <div class="compare-card compare-alive">
+      <p class="compare-label alive-label">✓ Tinted Neutral — cohesive</p>
+      <div class="compare-accent"></div>
+      <p class="compare-text-alive">The brand color intensifies what's already running through the page. It feels like it belongs. The background leans into your hue.</p>
+      <span class="card-badge" style="margin-top:12px;" id="compare-alive-label"></span>
+    </div>
+  </div>
+</div>
+
+<!-- 08 — Live Component Preview -->
+<div class="section">
+  <p class="section-label">08 — Live Component Preview</p>
+  <div class="live-demo">
+    <div class="demo-card">
+      <p class="card-eyebrow">Feature Update</p>
+      <p class="card-title-demo">Tinted neutrals make everything feel intentional</p>
+      <p class="card-body-demo">Every surface in this card carries 1–3% of the brand hue. The shadow leans into your brand color. The badge uses --color-brand-subtle.</p>
+      <span class="card-badge">Premium</span><br>
+      <button class="btn-demo" style="margin-top:14px;">Get started</button>
+      <button class="btn-demo btn-ghost" style="margin-left:8px;">Learn more</button>
+    </div>
+    <div class="demo-card">
+      <p class="card-eyebrow">Sign in</p>
+      <p class="card-title-demo">Welcome back</p>
+      <label class="input-label">Email address</label>
+      <input class="input-demo" type="email" placeholder="you@example.com">
+      <label class="input-label">Password</label>
+      <input class="input-demo" type="password" placeholder="••••••••">
+      <button class="btn-demo" style="width:100%;justify-content:center;">Continue</button>
+      <p style="font-size:0.65rem;color:var(--color-text-muted);margin-top:10px;text-align:center;">No account? <span id="signup-link" style="cursor:pointer;">Sign up free</span></p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── COLOR MATH ────────────────────────────────────────────────────
+
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  return {
+    r: parseInt(hex.slice(0, 2), 16),
+    g: parseInt(hex.slice(2, 4), 16),
+    b: parseInt(hex.slice(4, 6), 16)
+  };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(v => {
+    const h = Math.round(Math.max(0, Math.min(255, v))).toString(16);
+    return h.length === 1 ? '0' + h : h;
+  }).join('').toUpperCase();
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+}
+
+// ── SEMANTIC COLOR GENERATION ─────────────────────────────────────
+
+const SEMANTIC_BASE     = { danger: 4,  warning: 48, success: 142 };
+const SEMANTIC_MAX_PULL = { danger: 28, warning: 8,  success: 28  };
+
+function blendHue(base, brand, strength, maxPull) {
+  let diff = brand - base;
+  if (diff >  180) diff -= 360;
+  if (diff < -180) diff += 360;
+  const pull = Math.max(-maxPull, Math.min(maxPull, diff * strength));
+  return ((base + pull) % 360 + 360) % 360;
+}
+
+function generateSemantic(brandHsl) {
+  const bh = brandHsl.h;
+  const strength = 0.35;
+
+  const make = (baseHue, sat, lightFg, lightSubtle, maxPull) => {
+    const h = blendHue(baseHue, bh, strength, maxPull);
+    return {
+      fg:     tintedNeutral(h, lightFg,     sat),
+      subtle: tintedNeutral(h, lightSubtle, sat * 0.28),
+      text:   tintedNeutral(h, 28,          sat * 0.7),
+      hue:    h
+    };
+  };
+
+  return {
+    danger:  make(SEMANTIC_BASE.danger,  72, 48, 95, SEMANTIC_MAX_PULL.danger),
+    warning: make(SEMANTIC_BASE.warning, 78, 50, 95, SEMANTIC_MAX_PULL.warning),
+    success: make(SEMANTIC_BASE.success, 58, 40, 95, SEMANTIC_MAX_PULL.success),
+  };
+}
+
+function tintedNeutral(hue, lightness, saturation) {
+  const { r, g, b } = hslToRgb(hue, saturation, lightness);
+  return rgbToHex(r, g, b);
+}
+
+function generatePalette(hex) {
+  const rgb = hexToRgb(hex);
+  const brandHsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+  return {
+    brand:        hex.toUpperCase(),
+    bg:           tintedNeutral(brandHsl.h, 96.5,  4),
+    surface:      tintedNeutral(brandHsl.h, 99.0,  2),
+    surface2:     tintedNeutral(brandHsl.h, 93.5,  8),
+    border:       tintedNeutral(brandHsl.h, 88.5, 12),
+    borderStrong: tintedNeutral(brandHsl.h, 78.0, 18),
+    text:         tintedNeutral(brandHsl.h, 11.5, 18),
+    text2:        tintedNeutral(brandHsl.h, 28.0, 24),
+    textMuted:    tintedNeutral(brandHsl.h, 52.0, 16),
+    brandSubtle:  tintedNeutral(brandHsl.h, 94.0, 40),
+    semantic:     generateSemantic(brandHsl),
+    rgb,
+    brandHsl
+  };
+}
+
+// ── APPLY ─────────────────────────────────────────────────────────
+
+function applyPalette(p) {
+  const root = document.documentElement;
+  const { r, g, b } = p.rgb;
+
+  const shadowSm = `0 1px 3px rgba(${r},${g},${b},0.08), 0 0 0 1px rgba(${r},${g},${b},0.04)`;
+  const shadowMd = `0 4px 16px rgba(${r},${g},${b},0.10), 0 1px 4px rgba(${r},${g},${b},0.06)`;
+  const shadowLg = `0 12px 40px rgba(${r},${g},${b},0.12), 0 2px 8px rgba(${r},${g},${b},0.06)`;
+
+  const vars = {
+    '--color-brand':         p.brand,
+    '--color-brand-subtle':  p.brandSubtle,
+    '--color-brand-alpha':   `rgba(${r},${g},${b},0.14)`,
+    '--color-bg':            p.bg,
+    '--color-surface':       p.surface,
+    '--color-surface-2':     p.surface2,
+    '--color-border':        p.border,
+    '--color-border-strong': p.borderStrong,
+    '--color-text':          p.text,
+    '--color-text-2':        p.text2,
+    '--color-text-muted':    p.textMuted,
+    '--shadow-sm':           shadowSm,
+    '--shadow-md':           shadowMd,
+    '--shadow-lg':           shadowLg,
+  };
+  Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+
+  // Keep URL in sync (try/catch for sandboxed previews)
+  try {
+    const url = new URL(window.location);
+    url.searchParams.set('color', p.brand.replace('#', ''));
+    window.history.replaceState({}, '', url);
+  } catch(e) {}
+
+  // Shadow labels
+  document.getElementById('shadow-sm-val').textContent = shadowSm;
+  document.getElementById('shadow-md-val').textContent = shadowMd;
+  document.getElementById('shadow-lg-val').textContent = shadowLg;
+
+  // Compare section
+  document.getElementById('dead-accent').style.background = p.brand;
+  document.getElementById('compare-alive-label').textContent =
+    `bg: ${p.surface.toLowerCase()} · text: ${p.text2.toLowerCase()}`;
+  document.getElementById('signup-link').style.color = p.brand;
+
+  // Semantic CSS vars
+  const sem = p.semantic;
+  const semVars = {
+    '--color-danger':         sem.danger.fg,
+    '--color-danger-subtle':  sem.danger.subtle,
+    '--color-danger-text':    sem.danger.text,
+    '--color-warning':        sem.warning.fg,
+    '--color-warning-subtle': sem.warning.subtle,
+    '--color-warning-text':   sem.warning.text,
+    '--color-success':        sem.success.fg,
+    '--color-success-subtle': sem.success.subtle,
+    '--color-success-text':   sem.success.text,
+  };
+  Object.entries(semVars).forEach(([k, v]) => root.style.setProperty(k, v));
+
+  // ── Render color lists ───────────────────────────────────────
+
+  renderList('brand-list', [
+    { name: '--color-brand',        value: p.brand,       use: 'Primary brand — CTAs, active states, links',               info: p.brand },
+    { name: '--color-brand-subtle', value: p.brandSubtle, use: 'Subtle brand fills — badges, chip & tag backgrounds',      info: 'Pair with --color-brand for text' },
+  ]);
+
+  renderList('surface-list', [
+    { name: '--color-bg',        value: p.bg,       use: 'Page & window backgrounds',                        info: p.bg },
+    { name: '--color-surface',   value: p.surface,  use: 'Cards, panels, dropdowns, modals',                 info: p.surface },
+    { name: '--color-surface-2', value: p.surface2, use: 'Inset areas, code blocks, subtle hover fills',     info: p.surface2 },
+  ]);
+
+  renderList('border-list', [
+    { name: '--color-border',        value: p.border,       use: 'Default dividers, input strokes, rule lines',  info: p.border },
+    { name: '--color-border-strong', value: p.borderStrong, use: 'Accented borders, selected & focus ring states', info: p.borderStrong },
+  ]);
+
+  renderList('text-list', [
+    { name: '--color-text',       value: p.text,      use: 'Headings and primary body copy',                    info: p.text },
+    { name: '--color-text-2',     value: p.text2,     use: 'Secondary copy, descriptions, sub-labels',          info: p.text2 },
+    { name: '--color-text-muted', value: p.textMuted, use: 'Muted text — placeholders, metadata, timestamps',   info: p.textMuted },
+  ]);
+
+  renderSemanticList(sem);
+  renderSemanticDemo(sem);
+  renderHueExplanation(p.brandHsl, sem);
+}
+
+// ── COLOR LIST RENDERER ───────────────────────────────────────────
+
+function renderList(id, items) {
+  const container = document.getElementById(id);
+  container.innerHTML = '';
+  items.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'color-row';
+    row.onclick = () => copyText(t.value, t.name);
+    row.innerHTML = `
+      <div class="cr-swatch" style="background:${t.value}"></div>
+      <span class="cr-name">${t.name}</span>
+      <span class="cr-use">${t.use}</span>
+      <span class="cr-info">${t.info}</span>`;
+    container.appendChild(row);
+  });
+}
+
+// ── SEMANTIC LIST RENDERER ────────────────────────────────────────
+
+const SEMANTIC_META = {
+  danger:  { label: 'Danger',  icon: '✕' },
+  warning: { label: 'Warning', icon: '!' },
+  success: { label: 'Success', icon: '✓' },
+};
+
+function renderSemanticList(sem) {
+  const container = document.getElementById('semantic-list');
+  container.innerHTML = '';
+
+  ['danger', 'warning', 'success'].forEach(key => {
+    const s   = sem[key];
+    const m   = SEMANTIC_META[key];
+
+    // Tinted group header
+    const header = document.createElement('div');
+    header.className = `color-group-header ${key}`;
+    header.textContent = `${m.icon}  ${m.label}`;
+    container.appendChild(header);
+
+    // Three token rows per semantic group
+    [
+      { name: `--color-${key}-subtle`, value: s.subtle, use: `${m.label} background fills — alert surfaces, tag & badge backgrounds`, info: s.subtle },
+      { name: `--color-${key}`,        value: s.fg,     use: `${m.label} accent — icons, indicator dots, borders`,                    info: s.fg     },
+      { name: `--color-${key}-text`,   value: s.text,   use: `${m.label} body text — readable copy on subtle backgrounds`,            info: s.text   },
+    ].forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'color-row';
+      row.onclick = () => copyText(t.value, t.name);
+      row.innerHTML = `
+        <div class="cr-swatch" style="background:${t.value}"></div>
+        <span class="cr-name">${t.name}</span>
+        <span class="cr-use">${t.use}</span>
+        <span class="cr-info">${t.info}</span>`;
+      container.appendChild(row);
+    });
+  });
+}
+
+// ── SEMANTIC ALERT DEMO ───────────────────────────────────────────
+
+function renderSemanticDemo(sem) {
+  const demo = document.getElementById('semantic-demo');
+  demo.innerHTML = '';
+
+  const alerts = [
+    { key: 'danger',  title: 'Payment failed',    body: 'Your card ending in 4242 was declined. Please update your payment method.' },
+    { key: 'warning', title: 'Trial ending soon', body: 'Your free trial expires in 3 days. Upgrade to keep access to all features.' },
+    { key: 'success', title: 'Changes saved',     body: 'Your profile has been updated and all team members have been notified.' },
+  ];
+
+  alerts.forEach(({ key, title, body }) => {
+    const s = sem[key];
+    const m = SEMANTIC_META[key];
+    const el = document.createElement('div');
+    el.className = 'alert-card';
+    el.style.cssText = `background:${s.subtle}; border-left-color:${s.fg};`;
+    el.innerHTML = `
+      <div class="alert-header">
+        <div class="alert-icon" style="background:${s.fg}; color:#fff">${m.icon}</div>
+        <span class="alert-title" style="color:${s.text}">${title}</span>
+      </div>
+      <p class="alert-body" style="color:${s.text}; opacity:0.85">${body}</p>`;
+    demo.appendChild(el);
+  });
+}
+
+// ── HUE EXPLANATION ───────────────────────────────────────────────
+
+function renderHueExplanation(brandHsl, sem) {
+  const row = document.getElementById('hue-shift-explanation');
+  row.innerHTML = '';
+
+  const items = [
+    { label: `Brand hue ${Math.round(brandHsl.h)}°`,    color: `hsl(${brandHsl.h},${brandHsl.s}%,${brandHsl.l}%)` },
+    { label: `Danger → ${Math.round(sem.danger.hue)}°`,  color: sem.danger.fg  },
+    { label: `Warning → ${Math.round(sem.warning.hue)}°`, color: sem.warning.fg },
+    { label: `Success → ${Math.round(sem.success.hue)}°`, color: sem.success.fg },
+  ];
+
+  items.forEach(({ label, color }) => {
+    const chip = document.createElement('div');
+    chip.className = 'hue-chip';
+    chip.innerHTML = `<div class="hue-chip-dot" style="background:${color}"></div>${label}`;
+    row.appendChild(chip);
+  });
+}
+
+// ── COPY ──────────────────────────────────────────────────────────
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function copyText(val, name) {
+  navigator.clipboard.writeText(val).then(() => showToast(`Copied ${name}: ${val}`));
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+const urlColor  = urlParams.get('color');
+const initHex   = (urlColor && /^[0-9a-fA-F]{6}$/.test(urlColor.replace('#', '')))
+  ? '#' + urlColor.replace('#', '').toUpperCase()
+  : '#7034CA';
+
+applyPalette(generatePalette(initHex));
+</script>
+</body>
+</html>
