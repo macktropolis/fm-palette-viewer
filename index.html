@@ -406,7 +406,7 @@ function generatePalette(hex) {
 
 // ── APPLY ─────────────────────────────────────────────────────────
 
-function applyPalette(p) {
+function applyPalette(p, extraBrands = []) {
   const root = document.documentElement;
   const { r, g, b } = p.rgb;
 
@@ -467,10 +467,19 @@ function applyPalette(p) {
 
   // ── Render color lists ───────────────────────────────────────
 
-  renderList('brand-list', [
+  const brandItems = [
     { name: '--color-brand',        value: p.brand,       use: 'Primary brand — CTAs, active states, links',               info: p.brand },
     { name: '--color-brand-subtle', value: p.brandSubtle, use: 'Subtle brand fills — badges, chip & tag backgrounds',      info: 'Pair with --color-brand for text' },
-  ]);
+  ];
+  extraBrands.forEach((hex, i) => {
+    brandItems.push({
+      name:  `--color-brand-${i + 2}`,
+      value: hex,
+      use:   'Extended brand palette color',
+      info:  hex,
+    });
+  });
+  renderList('brand-list', brandItems);
 
   renderList('surface-list', [
     { name: '--color-bg',        value: p.bg,       use: 'Page & window backgrounds',                        info: p.bg },
@@ -617,12 +626,26 @@ function copyText(val, name) {
 
 // ── INIT ──────────────────────────────────────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
-const urlColor  = urlParams.get('color');
-const initHex   = (urlColor && /^[0-9a-fA-F]{6}$/.test(urlColor.replace('#', '')))
-  ? '#' + urlColor.replace('#', '').toUpperCase()
-  : '#7034CA';
 
-applyPalette(generatePalette(initHex));
+/* Parse color values — supports:
+   ?colors=7034CA,FF6B35,00A8E8  (primary + extras, comma-separated)
+   ?color=7034CA                 (legacy single-color param, still works) */
+const isValidHex = str => /^[0-9a-fA-F]{6}$/.test(str.replace('#', ''));
+const normalizeHex = str => '#' + str.replace('#', '').toUpperCase();
+
+const rawColors = urlParams.get('colors')
+  ? urlParams.get('colors').split(',').map(s => s.trim()).filter(isValidHex)
+  : [];
+
+const fallback = urlParams.get('color');
+const allColors = rawColors.length
+  ? rawColors
+  : (fallback && isValidHex(fallback) ? [fallback] : ['7034CA']);
+
+const initHex     = normalizeHex(allColors[0]);
+const extraBrands = allColors.slice(1).map(normalizeHex);
+
+applyPalette(generatePalette(initHex), extraBrands);
 </script>
 </body>
 </html>
